@@ -1,0 +1,1 @@
+//It represents a correction search result.

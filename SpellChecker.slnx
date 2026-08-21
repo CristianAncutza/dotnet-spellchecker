@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SpellChecker/SpellChecker.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/SpellChecker.Tests/">
+    <Project Path="tests/SpellChecker.Tests/Spellchecker.Tests.csproj" />
+  </Folder>
+</Solution>
