@@ -119,4 +119,14 @@ public class SpellCheckerTests
 
         Assert.Equal("{ad?}", checker.Correct("ad"));
     }
+
+
+    [Fact]
+    public void TwoAdjacentDeletions_AreForbidden()
+    {
+        var checker = new SpellingChecker(
+            new DictionaryIndex(["ad"]));
+
+        Assert.Equal("{abcd?}", checker.Correct("abcd"));
+    }
 }

@@ -1,62 +1,45 @@
 using System.Text;
 using SpellChecker.Domain;
+using SpellChecker.Infrastructure;
 
 namespace SpellChecker.Application;
 
 public sealed class SpellCheckerService
 {
+    private readonly InputReader _inputReader;
+    private readonly OutputWriter _outputWriter;
+
+    public SpellCheckerService(
+        InputReader inputReader,
+        OutputWriter outputWriter)
+    {
+        _inputReader = inputReader;
+        _outputWriter = outputWriter;
+    }
+
     public void Process(string inputPath, string outputPath)
     {
-        var lines = File.ReadAllLines(inputPath);
+        using var reader = new StreamReader(inputPath);
 
-        var dictionaryWords = new List<string>();
-        var textLines = new List<string>();
-
-        var readingDictionary = true;
-
-        foreach (var line in lines)
-        {
-            if (line == "===")
-            {
-                readingDictionary = false;
-                break;
-            }
-
-            dictionaryWords.AddRange(
-                line.Split(
-                    (char[]?)null,
-                    StringSplitOptions.RemoveEmptyEntries));
-        }
-
-        var separatorIndex = Array.IndexOf(lines, "===");
-
-        if (separatorIndex >= 0)
-        {
-            for (var i = separatorIndex + 1; i < lines.Length; i++)
-            {
-                if (lines[i] == "===")
-                {
-                    break;
-                }
-
-                textLines.Add(lines[i]);
-            }
-        }
+        var dictionaryWords = _inputReader.ReadDictionary(reader);
 
         var dictionary = new DictionaryIndex(dictionaryWords);
         var spellChecker = new SpellingChecker(dictionary);
 
         using var writer = new StreamWriter(outputPath);
 
-        foreach (var line in textLines)
+        foreach (var line in _inputReader.ReadTextLines(reader))
         {
-            writer.WriteLine(ProcessLine(line, spellChecker));
+            var correctedLine = ProcessLine(line, spellChecker);
+            _outputWriter.WriteLine(writer, correctedLine);
         }
     }
 
-    private static string ProcessLine(string line, SpellingChecker spellChecker)
+    private static string ProcessLine(
+        string line,
+        SpellingChecker spellChecker)
     {
-        var result = new StringBuilder();
+        var result = new StringBuilder(line.Length);
         var index = 0;
 
         while (index < line.Length)
