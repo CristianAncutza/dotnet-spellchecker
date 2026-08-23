@@ -19,10 +19,11 @@ public sealed class SpellCheckerService
 
     public void Process(string inputPath, string outputPath)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+
         using var reader = new StreamReader(inputPath);
-
         var dictionaryWords = _inputReader.ReadDictionary(reader);
-
         var dictionary = new DictionaryIndex(dictionaryWords);
         var spellChecker = new SpellingChecker(dictionary);
 
@@ -30,14 +31,11 @@ public sealed class SpellCheckerService
 
         foreach (var line in _inputReader.ReadTextLines(reader))
         {
-            var correctedLine = ProcessLine(line, spellChecker);
-            _outputWriter.WriteLine(writer, correctedLine);
+            _outputWriter.WriteLine(writer, ProcessLine(line, spellChecker));
         }
     }
 
-    private static string ProcessLine(
-        string line,
-        SpellingChecker spellChecker)
+    private static string ProcessLine(string line, SpellingChecker spellChecker)
     {
         var result = new StringBuilder(line.Length);
         var index = 0;
@@ -58,9 +56,7 @@ public sealed class SpellCheckerService
                 index++;
             }
 
-            var word = line[start..index];
-
-            result.Append(spellChecker.Correct(word));
+            result.Append(spellChecker.Correct(line[start..index]));
         }
 
         return result.ToString();

@@ -7,13 +7,16 @@ public sealed class SpellingChecker
 
     public SpellingChecker(DictionaryIndex dictionary)
     {
+        ArgumentNullException.ThrowIfNull(dictionary);
+
         _dictionary = dictionary;
         _correctionFinder = new CorrectionFinder(dictionary);
     }
 
     public string Correct(string word)
     {
-        // Correct words are printed exactly as they appeared in the input.
+        ArgumentNullException.ThrowIfNull(word);
+
         if (_dictionary.Contains(word))
         {
             return word;

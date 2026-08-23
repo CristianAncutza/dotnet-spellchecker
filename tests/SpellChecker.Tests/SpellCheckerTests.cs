@@ -6,29 +6,16 @@ public class SpellCheckerTests
 {
     private static SpellingChecker CreateChecker()
     {
-        var dictionary = new DictionaryIndex(
-        [
-            "rain",
-            "spain",
-            "plain",
-            "plaint",
-            "pain",
-            "main",
-            "mainly",
-            "the",
-            "in",
-            "on",
-            "fall",
-            "falls",
-            "his",
-            "was"
-        ]);
-
-        return new SpellingChecker(dictionary);
+        return new SpellingChecker(
+            new DictionaryIndex(
+            [
+                "rain", "spain", "plain", "plaint", "pain", "main", "mainly",
+                "the", "in", "on", "fall", "falls", "his", "was"
+            ]));
     }
 
     [Fact]
-    public void WordInDictionary_IsReturnedUnchanged()
+    public void ExactWord_IsReturnedUnchanged()
     {
         var checker = CreateChecker();
 
@@ -36,7 +23,7 @@ public class SpellCheckerTests
     }
 
     [Fact]
-    public void MatchingIsCaseInsensitive()
+    public void ExactWord_PreservesInputCasing()
     {
         var checker = CreateChecker();
 
@@ -60,41 +47,32 @@ public class SpellCheckerTests
     }
 
     [Fact]
-    public void MultipleCorrections_AreReturnedInDictionaryOrder()
+    public void MultipleCorrections_KeepDictionaryOrder()
     {
         var checker = CreateChecker();
 
-        Assert.Equal(
-            "{main mainly}",
-            checker.Correct("mainy"));
+        Assert.Equal("{main mainly}", checker.Correct("mainy"));
     }
 
     [Fact]
-    public void NoCorrection_IsMarked()
+    public void NoCorrection_UsesQuestionMarkFormat()
     {
         var checker = CreateChecker();
 
-        Assert.Equal(
-            "{rame?}",
-            checker.Correct("rame"));
+        Assert.Equal("{rame?}", checker.Correct("rame"));
     }
 
     [Fact]
-    public void OneEditCorrections_ArePreferredOverTwoEdits()
+    public void OneEditCorrections_HavePriorityOverTwoEdits()
     {
         var checker = new SpellingChecker(
-            new DictionaryIndex(
-            [
-                "abc",
-                "abcd",
-                "abcefg"
-            ]));
+            new DictionaryIndex(["mainly", "main"]));
 
-        Assert.Equal("abc", checker.Correct("ab"));
+        Assert.Equal("main", checker.Correct("mainy"));
     }
 
     [Fact]
-    public void TwoAdjacentDeletions_AreNotAllowed()
+    public void TwoAdjacentDeletions_AreForbidden()
     {
         var checker = new SpellingChecker(
             new DictionaryIndex(["ad"]));
@@ -112,7 +90,7 @@ public class SpellCheckerTests
     }
 
     [Fact]
-    public void TwoAdjacentInsertions_AreNotAllowed()
+    public void TwoAdjacentInsertions_AreForbidden()
     {
         var checker = new SpellingChecker(
             new DictionaryIndex(["abcd"]));
@@ -120,13 +98,21 @@ public class SpellCheckerTests
         Assert.Equal("{ad?}", checker.Correct("ad"));
     }
 
-
     [Fact]
-    public void TwoAdjacentDeletions_AreForbidden()
+    public void TwoNonAdjacentInsertions_AreAllowed()
     {
         var checker = new SpellingChecker(
-            new DictionaryIndex(["ad"]));
+            new DictionaryIndex(["abcde"]));
 
-        Assert.Equal("{abcd?}", checker.Correct("abcd"));
+        Assert.Equal("abcde", checker.Correct("ace"));
+    }
+
+    [Fact]
+    public void InsertAndDelete_AreAllowed()
+    {
+        var checker = new SpellingChecker(
+            new DictionaryIndex(["the"]));
+
+        Assert.Equal("the", checker.Correct("hte"));
     }
 }

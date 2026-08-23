@@ -8,105 +8,136 @@ public sealed class CorrectionFinder
 
     public CorrectionFinder(DictionaryIndex dictionary)
     {
+        ArgumentNullException.ThrowIfNull(dictionary);
+
         _root = new TrieNode();
 
-        for (var i = 0; i < dictionary.Words.Count; i++)
+        for (var order = 0; order < dictionary.Words.Count; order++)
         {
-            AddWord(dictionary.Words[i], i);
+            AddWord(dictionary.Words[order], order);
         }
     }
 
     public IReadOnlyList<string> FindCorrections(string word)
     {
-        // First look for corrections requiring only one edit.
-        var oneEditCorrections = FindCorrections(word, 1);
+        ArgumentNullException.ThrowIfNull(word);
 
-        if (oneEditCorrections.Count > 0)
-        {
-            return oneEditCorrections;
-        }
-
-        // Only search two-edit corrections when no one-edit correction exists.
-        return FindCorrections(word, MaxEdits);
+        var oneEdit = FindCorrections(word, maxEdits: 1);
+        return oneEdit.Count > 0
+            ? oneEdit
+            : FindCorrections(word, MaxEdits);
     }
 
-    private List<string> FindCorrections(string word, int maxEdits)
+    private IReadOnlyList<string> FindCorrections(string word, int maxEdits)
     {
-        var results = new List<WordMatch>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var matches = new List<Match>();
+        var matchedOrders = new HashSet<int>();
+        var visited = new HashSet<SearchState>();
 
         Search(
-            node: _root,
-            word: word,
+            _root,
+            word,
             inputIndex: 0,
-            editsUsed: 0,
+            edits: 0,
             lastEdit: EditType.None,
-            maxEdits: maxEdits,
-            results: results,
-            seen: seen);
+            maxEdits,
+            matches,
+            matchedOrders,
+            visited);
 
-        results.Sort((x, y) => x.Order.CompareTo(y.Order));
+        matches.Sort(static (left, right) =>
+            left.DictionaryOrder.CompareTo(right.DictionaryOrder));
 
-        return results.Select(x => x.Word).ToList();
+        return matches.Select(static match => match.Word).ToList();
     }
 
     private static void Search(
         TrieNode node,
         string word,
         int inputIndex,
-        int editsUsed,
+        int edits,
         EditType lastEdit,
         int maxEdits,
-        List<WordMatch> results,
-        HashSet<string> seen)
+        List<Match> matches,
+        HashSet<int> matchedOrders,
+        HashSet<SearchState> visited)
     {
-        if (inputIndex == word.Length && node.Word is not null)
+        var state = new SearchState(node, inputIndex, edits, lastEdit);
+
+        if (!visited.Add(state))
         {
-            if (seen.Add(node.Word))
-            {
-                results.Add(new WordMatch(node.Word, node.Order));
-            }
+            return;
         }
 
-        if (editsUsed == maxEdits)
+        if (inputIndex == word.Length)
         {
-            // No more edits are allowed. We can only match remaining characters.
-            if (inputIndex < word.Length &&
-                node.Children.TryGetValue(ToLower(word[inputIndex]), out var child))
+            if (node.Word is not null && matchedOrders.Add(node.DictionaryOrder))
             {
-                Search(
-                    child,
-                    word,
-                    inputIndex + 1,
-                    editsUsed,
-                    EditType.None,
-                    maxEdits,
-                    results,
-                    seen);
+                matches.Add(new Match(node.Word, node.DictionaryOrder));
+            }
+
+            if (edits < maxEdits && lastEdit != EditType.Insert)
+            {
+                foreach (var child in node.Children.Values)
+                {
+                    Search(
+                        child,
+                        word,
+                        inputIndex,
+                        edits + 1,
+                        EditType.Insert,
+                        maxEdits,
+                        matches,
+                        matchedOrders,
+                        visited);
+                }
             }
 
             return;
         }
 
-        // 1. Match the current character.
-        if (inputIndex < word.Length &&
-            node.Children.TryGetValue(ToLower(word[inputIndex]), out var matchingChild))
+        // Consume a matching character without using an edit.
+        var currentCharacter = char.ToLowerInvariant(word[inputIndex]);
+
+        if (node.Children.TryGetValue(currentCharacter, out var matchingChild))
         {
             Search(
                 matchingChild,
                 word,
                 inputIndex + 1,
-                editsUsed,
+                edits,
                 EditType.None,
                 maxEdits,
-                results,
-                seen);
+                matches,
+                matchedOrders,
+                visited);
         }
 
-        // 2. Insert a character into the input word.
-        //
-        // Two insertions cannot be adjacent, so another insertion
-        // immediately after an insertion is forbidden.
+        if (edits == maxEdits)
+        {
+            return;
+        }
+
+        // Delete one input character.
+        // A second deletion is only allowed after a matching character
+        // or another edit has separated the deleted characters.
+        if (lastEdit != EditType.Delete)
+        {
+            Search(
+                node,
+                word,
+                inputIndex + 1,
+                edits + 1,
+                EditType.Delete,
+                maxEdits,
+                matches,
+                matchedOrders,
+                visited);
+        }
+
+        // Insert one dictionary character.
+        // Two insertions in the same gap would affect adjacent characters,
+        // so an insertion cannot immediately follow another insertion.
         if (lastEdit != EditType.Insert)
         {
             foreach (var child in node.Children.Values)
@@ -115,66 +146,54 @@ public sealed class CorrectionFinder
                     child,
                     word,
                     inputIndex,
-                    editsUsed + 1,
+                    edits + 1,
                     EditType.Insert,
                     maxEdits,
-                    results,
-                    seen);
+                    matches,
+                    matchedOrders,
+                    visited);
             }
-        }
-
-        // 3. Delete a character from the input word.
-        //
-        // Two deletions cannot be adjacent, so another deletion
-        // immediately after a deletion is forbidden.
-        if (inputIndex < word.Length && lastEdit != EditType.Delete)
-        {
-            Search(
-                node,
-                word,
-                inputIndex + 1,
-                editsUsed + 1,
-                EditType.Delete,
-                maxEdits,
-                results,
-                seen);
         }
     }
 
-    private void AddWord(string word, int order)
+    private void AddWord(string word, int dictionaryOrder)
     {
         var current = _root;
 
         foreach (var character in word)
         {
-            var normalized = ToLower(character);
+            var normalized = char.ToLowerInvariant(character);
 
             if (!current.Children.TryGetValue(normalized, out var child))
             {
                 child = new TrieNode();
-                current.Children[normalized] = child;
+                current.Children.Add(normalized, child);
             }
 
             current = child;
         }
 
-        current.Word ??= word;
-        current.Order = Math.Min(current.Order, order);
-    }
-
-    private static char ToLower(char character)
-    {
-        return char.ToLowerInvariant(character);
+        if (current.Word is null)
+        {
+            current.Word = word;
+            current.DictionaryOrder = dictionaryOrder;
+        }
     }
 
     private sealed class TrieNode
     {
         public Dictionary<char, TrieNode> Children { get; } = [];
-
         public string? Word { get; set; }
-
-        public int Order { get; set; } = int.MaxValue;
+        public int DictionaryOrder { get; set; } = int.MaxValue;
     }
 
-    private sealed record WordMatch(string Word, int Order);
+    private readonly record struct SearchState(
+        TrieNode Node,
+        int InputIndex,
+        int Edits,
+        EditType LastEdit);
+
+    private readonly record struct Match(
+        string Word,
+        int DictionaryOrder);
 }

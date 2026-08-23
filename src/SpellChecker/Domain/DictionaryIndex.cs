@@ -7,6 +7,8 @@ public sealed class DictionaryIndex
 
     public DictionaryIndex(IEnumerable<string> words)
     {
+        ArgumentNullException.ThrowIfNull(words);
+
         _words = new HashSet<string>(
             StringComparer.OrdinalIgnoreCase
         );
