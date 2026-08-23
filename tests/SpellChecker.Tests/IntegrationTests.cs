@@ -10,7 +10,7 @@ public class IntegrationTests
     {
         var inputPath = Path.Combine(AppContext.BaseDirectory, "TestData", "sample.in");
         var expectedPath = Path.Combine(AppContext.BaseDirectory, "TestData", "sample.out");
-        var outputPath = Path.Combine(Path.GetTempPath(), $"cqg-{Guid.NewGuid():N}.out");
+        var outputPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.out");
 
         try
         {

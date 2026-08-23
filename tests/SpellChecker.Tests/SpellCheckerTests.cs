@@ -66,9 +66,13 @@ public class SpellCheckerTests
     public void OneEditCorrections_HavePriorityOverTwoEdits()
     {
         var checker = new SpellingChecker(
-            new DictionaryIndex(["mainly", "main"]));
+            new DictionaryIndex(
+            [
+                "abc",
+                "abcdef"
+            ]));
 
-        Assert.Equal("main", checker.Correct("mainy"));
+        Assert.Equal("abc", checker.Correct("ab"));
     }
 
     [Fact]

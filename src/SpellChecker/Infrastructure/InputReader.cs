@@ -21,6 +21,7 @@ public sealed class InputReader
                          (char[]?)null,
                          StringSplitOptions.RemoveEmptyEntries))
             {
+                ValidateWord(word);
                 words.Add(word);
             }
         }
@@ -78,21 +79,18 @@ public sealed class InputReader
         }
     }
 
-        private static void ValidateWord(string word)
+    private static void ValidateWord(string word)
     {
-        if (word.Length == 0 || word.Length > MaxWordLength)
+        if (word.Length > 50)
         {
             throw new InvalidDataException(
-                $"Dictionary word length must be between 1 and {MaxWordLength} characters.");
+                $"Word exceeds the maximum length of 50 characters: '{word}'.");
         }
 
-        foreach (var character in word)
+        if (!word.All(char.IsLetter))
         {
-            if (!char.IsLetter(character))
-            {
-                throw new InvalidDataException(
-                    $"Dictionary word '{word}' contains a non-letter character.");
-            }
+            throw new InvalidDataException(
+                $"Invalid word: '{word}'. Words may contain letters only.");
         }
     }
 }
