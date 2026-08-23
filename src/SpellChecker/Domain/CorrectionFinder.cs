@@ -6,6 +6,10 @@ public sealed class CorrectionFinder
 
     private readonly TrieNode _root;
 
+    /// <summary>
+    /// Builds the internal Trie tree using the provided dictionary words.
+    /// </summary>
+    /// <param name="dictionary">The dictionary index containing the list of valid words and their order.</param>
     public CorrectionFinder(DictionaryIndex dictionary)
     {
         ArgumentNullException.ThrowIfNull(dictionary);
@@ -18,6 +22,11 @@ public sealed class CorrectionFinder
         }
     }
 
+    /// <summary>
+    /// Finds spelling corrections for a target word, prioritizing matches with 1 edit 
+    /// before falling back to up to MaxEdits.
+    /// </summary>
+    /// <param name="word">The word to find corrections for.</param>
     public IReadOnlyList<string> FindCorrections(string word)
     {
         ArgumentNullException.ThrowIfNull(word);
@@ -25,9 +34,17 @@ public sealed class CorrectionFinder
         var oneEdit = FindCorrections(word, maxEdits: 1);
         return oneEdit.Count > 0
             ? oneEdit
+
+
+            
             : FindCorrections(word, MaxEdits);
     }
 
+    /// <summary>
+    /// Performs a fuzzy search in the Trie tree allowing up to a specified maximum number of edit operations.
+    /// </summary>
+    /// <param name="word">The input word being analyzed.</param>
+    /// <param name="maxEdits">The maximum allowed number of edit operations (deletions or insertions).</param>
     private IReadOnlyList<string> FindCorrections(string word, int maxEdits)
     {
         var matches = new List<Match>();
@@ -51,16 +68,20 @@ public sealed class CorrectionFinder
         return matches.Select(static match => match.Word).ToList();
     }
 
+    /// <summary>
+    /// Recursive depth-first search (DFS) algorithm that explores paths in the Trie 
+    /// evaluating matching characters, single character deletions, and single character insertions.
+    /// </summary>
     private static void Search(
-        TrieNode node,
-        string word,
-        int inputIndex,
-        int edits,
-        EditType lastEdit,
-        int maxEdits,
-        List<Match> matches,
-        HashSet<int> matchedOrders,
-        HashSet<SearchState> visited)
+        TrieNode node, //The current node in the Trie structure
+        string word, //The source word being evaluated
+        int inputIndex, //The current character index in the source word
+        int edits, //The total count of edits performed so far
+        EditType lastEdit, //The last type of edit operation executed
+        int maxEdits, //The maximum allowed number of edits
+        List<Match> matches, //The collection storing discovered valid candidate matches
+        HashSet<int> matchedOrders, //A tracking set to prevent duplicate entries based on dictionary order
+        HashSet<SearchState> visited) //A tracking set of state configurations to prevent redundant recursive paths
     {
         var state = new SearchState(node, inputIndex, edits, lastEdit);
 
@@ -156,6 +177,11 @@ public sealed class CorrectionFinder
         }
     }
 
+    /// <summary>
+    /// Inserts a word character by character into the internal Trie structure.
+    /// </summary>
+    /// <param name="word">The word to add to the Trie.</param>
+    /// <param name="dictionaryOrder">The original 0-based index position of the word in the dictionary source.</param>
     private void AddWord(string word, int dictionaryOrder)
     {
         var current = _root;

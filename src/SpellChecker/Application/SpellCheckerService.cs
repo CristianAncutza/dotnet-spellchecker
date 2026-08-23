@@ -17,6 +17,13 @@ public sealed class SpellCheckerService
         _outputWriter = outputWriter;
     }
 
+    /// <summary>
+    /// Reads a file, extracts its dictionary to initialize the spell checker, 
+    /// processes the remaining text lines for spelling corrections, and writes the output to a new file.
+    /// </summary>
+    /// <param name="inputPath">The path to the input file containing the dictionary and source text.</param>
+    /// <param name="outputPath">The target path where the spell-checked text will be saved.</param>
+    /// 
     public void Process(string inputPath, string outputPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
@@ -35,6 +42,12 @@ public sealed class SpellCheckerService
         }
     }
 
+    /// <summary>
+    /// Processes a single line of text by identifying word boundaries, checking spelling, 
+    /// and preserving non-alphabetic characters in their original positions.
+    /// </summary>
+    /// <param name="line">The text line to be processed.</param>
+    /// <param name="spellChecker">The spell checker instance used to correct identified words.</param>
     private static string ProcessLine(string line, SpellingChecker spellChecker)
     {
         var result = new StringBuilder(line.Length);

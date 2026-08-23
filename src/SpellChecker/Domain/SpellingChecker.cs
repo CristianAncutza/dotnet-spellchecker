@@ -13,6 +13,11 @@ public sealed class SpellingChecker
         _correctionFinder = new CorrectionFinder(dictionary);
     }
 
+    /// <summary>
+    /// Evaluates a word and returns either the original word if correct, 
+    /// a single suggestion, a list of candidate corrections, or an unknown word marker.
+    /// </summary>
+    /// <param name="word">The word to validate or correct.</param>
     public string Correct(string word)
     {
         ArgumentNullException.ThrowIfNull(word);

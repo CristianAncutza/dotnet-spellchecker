@@ -3,6 +3,11 @@ namespace SpellChecker.Infrastructure;
 public sealed class InputReader
 {
     private const int MaxWordLength = 50;
+
+    /// <summary>
+    /// Reads and parses dictionary words line by line from the reader until encountering the '===' section separator.
+    /// </summary>
+    /// <param name="reader">The text reader stream containing the dictionary section.</param>
     public IReadOnlyList<string> ReadDictionary(TextReader reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
@@ -29,7 +34,10 @@ public sealed class InputReader
         throw new InvalidDataException(
             "Input does not contain the dictionary terminator '==='.");
     }
-
+    /// <summary>
+    /// Reads text lines sequentially using an iterator until encountering the '===' end-of-file separator.
+    /// </summary>
+    /// <param name="reader">The text reader stream positioned at the input text section.</param>   
     public IEnumerable<string> ReadTextLines(TextReader reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
@@ -50,7 +58,11 @@ public sealed class InputReader
         throw new InvalidDataException(
             "Input does not contain the text terminator '==='.");
     }
-
+    /// <summary>
+    /// Validates a line of input text to ensure it contains only letters and whitespace, 
+    /// and that no individual word exceeds the maximum length threshold.
+    /// </summary>
+    /// <param name="line">The raw text line to validate.</param>
     private static void ValidateTextLine(string line)
     {
         var wordLength = 0;
@@ -78,7 +90,10 @@ public sealed class InputReader
             }
         }
     }
-
+    /// <summary>   
+    /// Validates an individual dictionary word to verify length constraints and alphabetic character rules.
+    /// </summary>
+    /// <param name="word">The dictionary word token to validate.</param>
     private static void ValidateWord(string word)
     {
         if (word.Length > 50)
