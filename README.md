@@ -1,6 +1,6 @@
 # Spell Checker
 
-.NET 10 console application for the CQG spell-checker assignment.
+.NET console application for the CQG spell-checker assignment.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ The test suite contains unit tests, an integration test for the supplied example
 ## Run
 
 ```bash
-dotnet run --project src/SpellChecker -- input.txt output.txt
+dotnet run --project src/SpellChecker -- test-data/sample.in test-data/sample.out
 ```
 
 ## Design
